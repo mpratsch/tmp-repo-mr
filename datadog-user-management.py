@@ -2,9 +2,9 @@
 """
 Author: Martina Rath
 Date: 2020-01-24
+Updated: 2020-02-20
 
 That script is a helper to set up permissions via the Datadog API
-since DD has no user management gui at the moment.
 See more details
   * https://docs.datadoghq.com/account_management/rbac/role_api/?tab=example
   * https://docs.datadoghq.com/account_management/rbac/role_api/?tab=response#add-user-to-role
@@ -62,7 +62,7 @@ def roles():
 
 @roles.command('list-permissions')
 def list_all_permissions():
-    """Lists all permissions (Name and UUID)"""
+    """Lists all available permissions"""
     for key, value in UUID_LIST.items():
         print(f'{key}\t{value}')
 
@@ -70,7 +70,7 @@ def list_all_permissions():
 @roles.command('get-user-permission-set')
 @click.argument('useruuid')
 def get_user_permission_set(useruuid):
-    """Lists all permissions of a user"""
+    """Lists all permissions of a user - [useruuid]"""
     c = start_handler()
     URL = f'{APIVERSION}/users/{useruuid}/permissions'
     c.setopt(c.WRITEDATA, BUFFER)
@@ -95,10 +95,9 @@ def get_users_of_roles(rolename):
     for output in body['data']:
         for key, value in output.items():
             if 'attributes' in key:
-                if rolename in body['included'][0]['attributes']['name']:
-                    user_uuid = output['id']
-                    print(value['email'], end=' | ')
-                    print(user_uuid)
+                user_uuid = output['id']
+                print(value['email'], end=' | ')
+                print(user_uuid)
     return user_uuid
 
 @roles.command('list-monitor-downtimes')
@@ -129,11 +128,11 @@ def get_all_permissions(rolename=None):
                 else:
                     print(COLOR['cyan'] + '#############################################')
                     print(value['name'], end=' |')
-                    print(' (%s)' % output['id'])
+                    print(' %s' % output['id'])
                     print('---------------------------------------------')
                     print(COLOR['reset'] + '', end='')
                     for permission in output['relationships']['permissions']['data']:
-                        print(f'{UUID_LIST_REVERSE[permission["id"]]} (permission["id"])')
+                        print(f'{permission["id"]} | {UUID_LIST_REVERSE[permission["id"]]} ')
     return user_uuid
 
 @roles.command('list-roles')
@@ -147,7 +146,7 @@ def list_all_roles():
     for output in body['data']:
         for attribute in output['attributes']:
             if 'name' in attribute:
-                print(f'{output["attributes"][attribute]}\t| {output["id"]}')
+                print(f'{output["id"]} | {output["attributes"][attribute]} | users({output["attributes"]["user_count"]})')
 
 @roles.command('list-all-permissions')
 def get_permissions_of_role():
@@ -200,8 +199,7 @@ def list_all_users():
     for output in body['data']:
         for key, value in output.items():
             if 'attributes' in key:
-                print(value['email'], end=' | ')
-                print(f'{value["name"]}\n\t{output["id"]}')
+                print(f'{output["id"]} | {value["email"]} | {value["name"]}')
 
 @roles.command('add-user-to-role')
 @click.argument('roleuuid')
@@ -215,7 +213,7 @@ def add_user_to_role(roleuuid, useruuid):
     c.setopt(c.POSTFIELDS, PF)
     perform_request(c, URL)
 
-@roles.command('grant_permisson')
+@roles.command('permission-grant')
 @click.argument('roleuuid')
 @click.argument('permissionid')
 def grant_permission(roleuuid, permissionid):
@@ -227,7 +225,7 @@ def grant_permission(roleuuid, permissionid):
     c.setopt(c.POSTFIELDS, PF)
     perform_request(c, URL)
 
-@roles.command('revoke_permisson')
+@roles.command('permission-revoke')
 @click.argument('roleuuid')
 @click.argument('permissionid')
 def grant_permission(roleuuid, permissionid):
@@ -264,4 +262,3 @@ def perform_request(c, URL):
 
 if __name__ == "__main__":
     roles()
-    #get_all_permissions()
